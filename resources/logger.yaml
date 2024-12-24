@@ -1,0 +1,41 @@
+priority: 2
+logger:
+  version: 1
+  disable_existing_loggers: false
+
+  formatters:
+    simple:
+      format: "%(asctime)s | %(levelname)-8s | %(name)-30.50s:%(lineno)-3d | %(message)s"
+    detailed:
+      format: "%(asctime)s | %(levelname)-8s | %(name)-30.50s:%(lineno)-3d | %(threadName)-16s | %(message)s"
+
+  handlers:
+    console:
+      class: logging.StreamHandler
+      level: DEBUG
+      formatter: detailed
+      stream: ext://sys.stdout
+
+    file_error:
+      class: logging.handlers.TimedRotatingFileHandler
+      level: ERROR
+      formatter: detailed
+      filename: logs/error.log
+      when: midnight
+      interval: 1
+      backupCount: 7
+
+    file_info:
+      class: logging.handlers.TimedRotatingFileHandler
+      level: INFO
+      formatter: detailed
+      filename: logs/info.log
+      when: midnight
+      interval: 1
+      backupCount: 7
+
+  loggers:
+    "":
+      level: DEBUG
+      handlers: [console, file_error, file_info]
+      propagate: no
