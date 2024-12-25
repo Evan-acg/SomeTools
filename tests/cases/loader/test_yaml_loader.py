@@ -31,7 +31,7 @@ class TestConfigLoader:
             {"value": "a.yml", "expected": True},
             {"value": "a.txt", "expected": False},
         ],
-        lambda o: f"{o['value']}->{o['expected']}",
+        fn=lambda o, _: f"{o['value']}->{o['expected']}",
     )
     def test_should_filter_work(self, item: FilterCase) -> None:
         loader: YamlLoader = YamlLoader()
