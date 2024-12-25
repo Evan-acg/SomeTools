@@ -8,7 +8,6 @@ from ..detect import detect_compression_type
 
 
 class TestCompressFileDetect:
-
     @pytest.mark.parametrize("item", decompressions.keys())
     def test_should_be_compress_file(self, item: bytes, mocker: MockFixture) -> None:
         fn: MagicMock = mocker.patch("builtins.open")

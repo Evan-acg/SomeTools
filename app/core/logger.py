@@ -1,7 +1,7 @@
 import logging.config
 import os
 
-from .config import config
+from app.core.config import Config
 
 
 def init_logger_folder_and_file(config):
@@ -18,7 +18,8 @@ def init_logger_folder_and_file(config):
 
 
 def init_logger():
-    conf = config.get("logger", {'version': 1})
+    config = Config()
+    conf = config.get("logger", default={"version": 1})
     init_logger_folder_and_file(conf)
     logging.config.dictConfig(conf)
     logger = logging.getLogger(__name__)

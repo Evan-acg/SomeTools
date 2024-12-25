@@ -23,7 +23,6 @@ def mock_os_walk(root) -> list[tuple[str, list[str], list[str]]]:
 
 
 class TestConfigLoader:
-
     @param(
         "item",
         [
@@ -31,7 +30,7 @@ class TestConfigLoader:
             {"value": "a.yml", "expected": True},
             {"value": "a.txt", "expected": False},
         ],
-        lambda o: f"{o['value']}->{o['expected']}",
+        fn=lambda o, _: f"{o['value']}->{o['expected']}",
     )
     def test_should_filter_work(self, item: FilterCase) -> None:
         loader: YamlLoader = YamlLoader()
@@ -41,7 +40,6 @@ class TestConfigLoader:
     def test_should_gather_config_file_work_with_resources(
         self, mocker: MockFixture
     ) -> None:
-
         loader: YamlLoader = YamlLoader()
         args = "./resources"
         expected = [
@@ -59,7 +57,6 @@ class TestConfigLoader:
     def test_should_gather_config_file_work_with_resource(
         self, mocker: MockFixture
     ) -> None:
-
         loader: YamlLoader = YamlLoader()
         args = "./resource"
         expected = [
@@ -77,7 +74,6 @@ class TestConfigLoader:
     def test_should_gather_config_file_work_with_config(
         self, mocker: MockFixture
     ) -> None:
-
         loader: YamlLoader = YamlLoader()
         args = "./config"
         expected = [
