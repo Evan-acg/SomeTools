@@ -1,3 +1,4 @@
+import os
 import typing as t
 from abc import ABC, abstractmethod
 from concurrent.futures import ThreadPoolExecutor, wait
@@ -5,6 +6,7 @@ from concurrent.futures import ThreadPoolExecutor, wait
 import pydash
 from tqdm import tqdm
 
+from app.modules.video.converter import FilenameConverter
 from app.modules.video.marker import Marker
 
 from .ffmpeg import FFProbe
@@ -21,7 +23,25 @@ class Filter(ABC, t.Generic[A, R]):
 
 class VideoFilter(Filter):
     _ALLOWED_EXT: list[str] = ["mp4", "mkv", "avi", "flv", "mov", "wmv", "webm", "ts"]
-    _VIDEO_TYPES = ["h264", "h265"]
+    _VIDEO_TYPES = [
+        "h264",
+        "h265",
+        "hevc",
+        "vp9",
+        "vp8",
+        "av1",
+        "avc",
+        "mpeg4",
+        "mpeg2",
+        "vc1",
+        "vp9",
+        "vp8",
+        "av1",
+        "avc",
+        "mpeg4",
+        "mpeg2",
+        "vc1",
+    ]
 
     @property
     def video_types(self) -> list[str]:
@@ -40,11 +60,21 @@ class VideoFilter(Filter):
 
     def _filter(self, file: str) -> dict[str, str]:
         probe = FFProbe()
+        probe.option("v", "quiet")
+        probe.option("of", "json")
+        probe.option("show_streams")
+        probe.option("show_format")
         probe.option("i", file)
-        return {**probe.invoke(), "input": file}
+        ret = probe.invoke()
+        return pydash.merge({}, ret, {"input": file})
 
     def invoke(self, files: list[str]) -> list[dict[str, str]]:
-        files = [file for file in files if file.split(".")[-1] in self._ALLOWED_EXT]
+        files = [
+            file
+            for file in files
+            if file.split(".")[-1] in self._ALLOWED_EXT
+            and os.path.basename(file)[0] != FilenameConverter._PREFIX
+        ]
         with ThreadPoolExecutor() as executor:
             video_infos = list(
                 tqdm(executor.map(self._filter, files), total=len(files))

@@ -19,13 +19,20 @@ def decompress(path: str, to: str, deep: bool, clean: bool):
 
 
 @main.command()
-def convert():
-    ConvertorManager()
+@click.option("--path", "-p", required=True, type=click.Path())
+@click.option("--to", "-t", required=False, type=click.Path())
+@click.option("--deep", "-d", is_flag=True)
+@click.option("--clean", "-c", is_flag=True)
+@click.option("--swap", "-s", is_flag=True)
+def convert(path: str, to: str, deep: bool, clean: bool, swap: bool) -> None:
+    m: ConvertorManager = ConvertorManager()
+    m.start(path, to, deep, clean, swap)
 
 
 @main.command()
 def play():
     pass
+
 
 if __name__ == "__main__":
     main()

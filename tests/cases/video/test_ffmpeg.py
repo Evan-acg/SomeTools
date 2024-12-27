@@ -86,7 +86,7 @@ class TestDecoderFinder:
         source: str = r"E:\swap\1.mp4"
         finder: DecoderFinder = DecoderFinder()
 
-        actual: str = finder.find_codec(source)
+        actual: str | None = finder.find_codec(source)
 
         assert actual == "h264"
 
@@ -99,7 +99,7 @@ class TestDecoderFinder:
         )
         finder: DecoderFinder = DecoderFinder()
 
-        actual: str = finder.find_codec(source)
+        actual: str | None = finder.find_codec(source)
 
         assert actual == "h264"
 

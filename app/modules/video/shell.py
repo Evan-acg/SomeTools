@@ -19,8 +19,9 @@ class ShellRunner:
             shell=True,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
-            encoding=encoding,
             text=True,
+            encoding=encoding,
+            errors="replace",
         )
         return {
             "stdout": process.stdout,

@@ -78,13 +78,16 @@ class ConvertorManager:
 
         swap_path: str = options.get("swap_path") or ""
 
-        if options.get("swap") and flag and os.path.exists(swap_path):
+        assert out_path
+        if options.get("swap") and flag and os.path.exists(out_path):
             os.rename(output, swap_path)
 
     def start(
         self, path: str, to: str, deep: bool = True, clean: bool = False, swap=True
     ) -> None:
-        files: list[str] = self.find_files(path, deep)
+        files: list[str] = (
+            self.find_files(path, deep) if os.path.isdir(path) else [path]
+        )
         video_files: list[dict[str, str]] = self.find_video_files(files)
 
         # 3. 转换视频文件, 并打上标记

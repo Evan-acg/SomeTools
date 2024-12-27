@@ -18,7 +18,7 @@ IConvertOptions = t.TypedDict(
         "output_ext": str,
         "clean": bool,
         "swap": bool,
-        "swap_path": str
+        "swap_path": str,
     },
 )
 
@@ -40,7 +40,7 @@ class Converter(ABC, t.Generic[P, R]):
             "output_ext": "mp4",
             "clean": False,
             "swap": False,
-            "swap_path":"./example.mp4"
+            "swap_path": "./example.mp4",
         }
 
     @abstractmethod
