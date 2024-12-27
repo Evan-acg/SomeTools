@@ -44,6 +44,11 @@ class TestFileFinder:
                 "expected": ["a.txt", "config\\b.txt"],
                 "depth": 1,
             },
+            {
+                "sources": ["a.txt", "config/b.txt", "config/c/d.txt"],
+                "expected": ["a.txt", "config\\b.txt", "config\\c\\d.txt"],
+                "depth": -1,
+            },
         ],
         fn=lambda _, i: str(i),
     )

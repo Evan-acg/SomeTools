@@ -1,7 +1,7 @@
 import click
 
 from app.modules.decompression import main as decompress_main
-from app.modules.test.main import test as test_main
+from app.modules.video.main import ConvertorManager
 
 
 @click.group()
@@ -19,9 +19,13 @@ def decompress(path: str, to: str, deep: bool, clean: bool):
 
 
 @main.command()
-def test():
-    test_main()
+def convert():
+    ConvertorManager()
 
+
+@main.command()
+def play():
+    pass
 
 if __name__ == "__main__":
     main()

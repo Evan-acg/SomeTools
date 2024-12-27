@@ -14,7 +14,6 @@ class Action(ABC):
 
 class MergeAsSection(Action):
     def invoke(self, source: list[str]) -> list[str]:
-
         ret: list[str] = []
         temp: list[str] = []
         for s in source:

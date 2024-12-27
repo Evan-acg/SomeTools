@@ -37,7 +37,6 @@ class Loader(t.Generic[T], ABC):
 
 
 class CompressFileLoader(Loader[str]):
-
     def _load(self, deep: bool) -> list[str]:
         if not osp.exists(self.raw_path):
             return []
@@ -74,7 +73,6 @@ class CompressFileLoader(Loader[str]):
 
 
 class CodeFileLoader(Loader[str]):
-
     def load(self):
         if not osp.exists(self.raw_path):
             return

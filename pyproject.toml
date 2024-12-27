@@ -4,5 +4,6 @@ testpaths= [
     "tests"
 ]
 markers = [
-    "decompression: mark a test to run only if it is decompression module"
+    "decompression: mark a test to run only if it is decompression module",
+    "only: mark a test to run only",
 ]
