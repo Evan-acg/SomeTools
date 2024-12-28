@@ -1,14 +1,10 @@
+import logging
+
 from .converter import *
+from .ffmpeg import *
 from .filter import *
 from .main import *
+from .marker import *
+from .types import *
 
-__all__ = [
-    "ConvertorManager",
-    "Mp4Converter",
-    "VideoFilter",
-]
-
-
-def main(path: str, to: str, deep: bool = True, clean: bool = False) -> None:
-    m: ConvertorManager = ConvertorManager()
-    m.start(path, to, deep, clean)
+logger = logging.getLogger(__name__)

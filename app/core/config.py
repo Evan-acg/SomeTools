@@ -2,6 +2,9 @@ import os
 import typing as t
 from abc import ABC, abstractmethod
 
+import pydash
+import yaml
+
 
 from app.composable import singleton
 
@@ -53,6 +56,10 @@ class YamlLoader(Loader):
             return result[0]
         return {}
 
+    def _load(self, path: str) -> dict:
+        with open(path, "r", encoding="utf-8") as f:
+            return yaml.safe_load(f)
+
     def loads(self: t.Self, raws: list[str]) -> list[dict[str, t.Any]]:
         config_paths: list[str] = []
         for p in raws:
@@ -60,7 +67,8 @@ class YamlLoader(Loader):
                 config_paths.append(p)
             if os.path.isdir(p):
                 config_paths.extend(self.gather_files(p))
-        return []
+
+        return [self._load(p) for p in config_paths]
 
 
 default_position: list[str] = ["./resources"]
@@ -84,7 +92,10 @@ class Config:
         if path is not None:
             config_paths.append(path)
 
-        self.loader.loads(config_paths)
+        configs = self.loader.loads(config_paths)
+        configs = sorted(configs, key=lambda x: x.get(SORT_KEY, 0))
+        for config in configs:
+            self.container = pydash.merge({}, self.container, config)
 
 
 def init_config() -> None:

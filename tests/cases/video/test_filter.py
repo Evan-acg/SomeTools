@@ -5,41 +5,29 @@ from pytest_mock import MockFixture
 
 from app.modules.video.filter import VideoFilter
 from app.modules.video.filter import MarkerFilter
+from app.modules.video.types import ManagerOptions
 
 
 class TestVideoFilter:
     def test_should_work(self, mocker: MockFixture) -> None:
         sources: list[str] = ["1.mp4", "2.jpg"]
+        expected: list[str] = ["1.mp4"]
         video_filter = VideoFilter()
 
-        fn = mocker.patch("subprocess.run")
-        fn.side_effect = [
-            MagicMock(stdout='{"streams":[{"codec_name":"h264"}]}'),
-            MagicMock(stdout='{"streams":[{"codec_name":"png"}]}'),
-        ]
+        actual = video_filter.filter(sources)
 
-        actual = video_filter.invoke(sources)
-
-        assert all(
-            [
-                pydash.get(r, "streams.0.codec_name") in video_filter.video_types
-                for r in actual
-            ]
-        )
+        assert sorted(actual) == sorted(expected)
 
 
 class TestMarkerFilter:
     def test_invoke(self, mocker: MockFixture) -> None:
-        files = [
-            {"raw_path": "branded_video.mp4"},
-            {"raw_path": "non_branded_video.mp4"},
-        ]
+        files = ["branded_video.mp4", "non_branded_video.mp4"]
         marker_filter = MarkerFilter()
 
         mock_marker = mocker.patch("app.modules.video.marker.Marker.is_branded")
         mock_marker.side_effect = [True, False]
 
-        actual = marker_filter.invoke(files)
+        actual = marker_filter.filter(files, ManagerOptions())
 
         assert len(actual) == 1
-        assert actual[0]["raw_path"] == "branded_video.mp4"
+        assert actual[0] == "non_branded_video.mp4"

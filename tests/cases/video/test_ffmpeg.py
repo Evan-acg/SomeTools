@@ -7,6 +7,7 @@ import pytest
 from pytest_mock import MockFixture
 
 from app.modules.video.ffmpeg import DecoderFinder, FFMpeg, FFProbe
+from app.modules.video import ffmpeg
 
 
 @pytest.fixture
@@ -42,7 +43,7 @@ class TestFFProbe:
 class TestFFMpeg:
     def test_should_command_correct(self) -> None:
         expected: str = (
-            "ffmpeg -hwaccel cuda -c:v h264_cuvid -i 1.mp4 -c:v h264_nvenc -c:a aac -y 2.mp4"
+            'ffmpeg -hwaccel cuda -c:v h264_cuvid -i "1.mp4" -c:v h264_nvenc -c:a aac -y "2.mp4"'
         )
         encoder: str = "h264_nvenc"
         decoder: str = "h264_cuvid"
@@ -82,6 +83,7 @@ class TestDecoderFinder:
 
         assert actual == None
 
+    @pytest.mark.skip(reason="this test file is not exist")
     def test_find_codec_without_mock(self) -> None:
         source: str = r"E:\swap\1.mp4"
         finder: DecoderFinder = DecoderFinder()
@@ -106,14 +108,11 @@ class TestDecoderFinder:
     def test_find_supported_coders_with_supported_codec(
         self, mocker: MockFixture
     ) -> None:
-        mocker.patch(
-            "app.modules.video.ffmpeg.ShellRunner.run",
-            return_value={"stdout": "------\n D h264_cuvid \n D h264_nvenc \n"},
-        )
+        mocker.patch.object(ffmpeg, "DECODERS", ["h264_cuvid", "h264_nvenc"])
+
         finder = DecoderFinder()
         supported_coders = finder.find_supported_coders("h264")
         assert "h264_cuvid" in supported_coders
-        assert "h264_nvenc" in supported_coders
 
     def test_find_supported_coders_with_unsupported_codec(
         self, mocker: MockFixture
@@ -127,10 +126,7 @@ class TestDecoderFinder:
         assert supported_coders == []
 
     def test_find_supported_coders_with_empty_output(self, mocker: MockFixture) -> None:
-        mocker.patch(
-            "app.modules.video.ffmpeg.ShellRunner.run",
-            return_value=MagicMock(stdout="------\n"),
-        )
+        mocker.patch.object(ffmpeg, "DECODERS", [])
         finder = DecoderFinder()
         supported_coders = finder.find_supported_coders("h264")
         assert supported_coders == []

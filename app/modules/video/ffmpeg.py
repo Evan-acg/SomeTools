@@ -1,4 +1,6 @@
+from dataclasses import dataclass
 import json
+import logging
 import os
 import re
 import typing as t
@@ -11,19 +13,27 @@ from app.modules.video.device import GPUDevice
 
 from .shell import IExecuteResult, ShellRunner
 
-IMediaMeta = t.TypedDict("IMediaMeta", {})
-IMediaDuration = t.TypedDict("IMediaDuration", {})
-IMediaStream = t.TypedDict("IMediaStream", {})
 
-IMediaInfo = t.TypedDict(
-    "IMediaInfo",
-    {
-        "raw": IExecuteResult,
-        "meta": IMediaMeta,
-        "duration": IMediaDuration,
-        "streams": list[IMediaStream],
-    },
-)
+logger = logging.getLogger(__name__)
+
+
+def find_codecs(name: str) -> list[str]:
+    shell = ShellRunner()
+    command = f"ffmpeg -{name}"
+    ret = shell.run(command)
+    outputs: list[str] = ret.get("stdout", "").split("\n")
+    index = next((i for i, s in enumerate(outputs) if "------" in s), -1)
+    decoders = outputs[index + 1 :]
+    pattern = re.compile(r"^.*?[A-Z\.]\s{1}(.*?)\s{1}", re.S)
+    supported_decoders = [
+        match.group(1) for d in decoders if (match := pattern.search(d))
+    ]
+    # return [decoder for decoder in supported_decoders if name in decoder]
+    return supported_decoders
+
+
+ENCODERS: list[str] = find_codecs("decoders")
+DECODERS: list[str] = find_codecs("encoders")
 
 
 class DecoderFinder:
@@ -42,7 +52,6 @@ class DecoderFinder:
         probe.option("v", "quiet")
         probe.option("of", "json")
         probe.option("show_streams")
-        probe.option("show_format")
         probe.option("i", path)
         command = probe.command
 
@@ -56,23 +65,15 @@ class DecoderFinder:
         return codec
 
     def find_supported_coders(self, name: str) -> list[str]:
-        command = "ffmpeg -decoders"
-        ret = self.shell.run(command)
-        outputs: list[str] = ret.get("stdout", "").split("\n")
-        index = next((i for i, s in enumerate(outputs) if "------" in s), -1)
-        decoders = outputs[index + 1 :]
-        pattern = re.compile(r"^.*?[A-Z\.]\s{1}(.*?)\s{1}", re.S)
-        supported_decoders = [
-            match.group(1) for d in decoders if (match := pattern.search(d))
-        ]
-        return [decoder for decoder in supported_decoders if name in decoder]
+        return [decoder for decoder in DECODERS if name in decoder]
 
     def find(self, path: str) -> str | None:
         if not self.defense(path):
             return None
         codec: str | None = self.find_codec(path)
 
-        assert codec
+        if not codec:
+            return None
         supp = self.find_supported_coders(codec)
 
         key = (
@@ -96,7 +97,7 @@ class MediaProcessor(ABC):
         self.options: list[tuple[str, str]] = []
 
     def option(self, key: str, value: str = "") -> t.Self:
-        if key == "i":
+        if key in ("i", "y"):
             value = f'"{value}"'
         self.options.append((key, value))
         return self
@@ -123,14 +124,6 @@ class FFProbe(MediaProcessor):
     def __init__(self):
         super().__init__()
         self.head = "ffprobe"
-        self.options.extend(
-            [
-                ("v", "quiet"),
-                ("print_format", "json"),
-                ("show_format", ""),
-                ("show_streams", ""),
-            ]
-        )
 
     def invoke(self) -> dict[str, str]:
         result = super().invoke()
@@ -141,51 +134,72 @@ CODEC_TYPE = t.Literal["Decoder", "Encoder"]
 CODECS = t.Literal["decoders", "encoders"]
 
 
-class FFMpeg(MediaProcessor):
+@dataclass
+class FFMpegProgressInfo:
+    this: "FFMpeg"
+    duration: str
+    current: str
+    percentage: float
 
-    def __init__(self):
+
+class FFMpeg(MediaProcessor):
+    duration_pattern: re.Pattern = re.compile(r"Duration: (\d{2}:\d{2}:\d{2}\.\d{2})")
+    current_pattern: re.Pattern = re.compile(r"time=(\d{2}:\d{2}:\d{2}\.\d{2})")
+    file_pattern: re.Pattern = re.compile(r"""-i ["'](.*?)['"]""")
+
+    def __init__(self) -> None:
         super().__init__()
-        self.head = "ffmpeg"
+        self.head: str = "ffmpeg"
+        self.length_info: str = ""
+
+        self.progress_action: list = []
+        self.after_action: list = []
+
+    def add_progress(self, action) -> None:
+        self.progress_action.append(action)
+
+    def add_after(self, action) -> None:
+        self.after_action.append(action)
+
+    def refine_info(self, line: str, info: FFMpegProgressInfo) -> None:
+
+        if matched := self.duration_pattern.search(line):
+            info.duration = matched.group(1)
+        if matched := self.current_pattern.search(line):
+            info.current = matched.group(1)
+
+        trans_2_seconds = lambda x: sum(
+            float(x) * 60**i for i, x in enumerate(reversed(x.split(":")))
+        )
+
+        duration_seconds = trans_2_seconds(info.duration)
+        current_seconds = trans_2_seconds(info.current)
+        info.percentage = (
+            (current_seconds / duration_seconds) * 100 if duration_seconds else 0
+        )
 
     def execute(self, command, encoding="utf-8") -> IExecuteResult:
         shell: ShellRunner = ShellRunner()
 
-        duration_pattern: re.Pattern = re.compile(
-            r"Duration: (\d{2}:\d{2}:\d{2}\.\d{2})"
-        )
-        current_pattern: re.Pattern = re.compile(r"time=(\d{2}:\d{2}:\d{2}\.\d{2})")
-        file_pattern: re.Pattern = re.compile(r"""-i ["'](.*?)['"]""")
-
         process = shell.open(command, encoding=encoding)
-        duration: str = "00:00:00.00"
-        current: str = "00:00:00.00"
-        if matched := file_pattern.search(command):
-            print("\n")
-            print("Converting: ", matched.group(1))
 
-        bar = tqdm(total=100, unit="%")
+        info = FFMpegProgressInfo(self, "00:00:00.00", "00:00:00.00", 0)
+
         for line in process.stdout or []:
-            if matched := duration_pattern.search(line):
-                duration = matched.group(1)
-            if matched := current_pattern.search(line):
-                current = matched.group(1)
-
-            duration_seconds = sum(
-                float(x) * 60**i for i, x in enumerate(reversed(duration.split(":")))
-            )
-            current_seconds = sum(
-                float(x) * 60**i for i, x in enumerate(reversed(current.split(":")))
-            )
-            percentage = (
-                (current_seconds / duration_seconds) * 100 if duration_seconds else 0
-            )
-            bar.set_postfix_str(f"Current: {current}, Duration: {duration}")
-            p = int((percentage - bar.n) * 100) / 100
-            bar.update(p)
-
+            self.refine_info(line, info)
+            for action in self.progress_action:
+                action(info)
+        for action in self.after_action:
+            action(self)
         process.wait()
         return {
             "code": process.returncode,
             "stdout": str(process.stdout),
             "stderr": str(process.stderr),
         }
+
+    @staticmethod
+    def is_installed() -> bool:
+        shell: ShellRunner = ShellRunner()
+        ret = shell.run("ffmpeg -version")
+        return ret["code"] == 0

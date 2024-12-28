@@ -1,96 +1,92 @@
+import logging
 import os
-import pydash
-import send2trash
+from dataclasses import asdict
 
 from app.core.path import FileFinder
-from app.modules.video.ffmpeg import DecoderFinder, EncoderFinder
-from app.modules.video.marker import Marker
-from tqdm import tqdm
 
-from .converter import FilenameConverter, Mp4Converter, IConvertOptions
-from .filter import MarkerFilter, VideoFilter
+from .action import (
+    Action,
+    BrandMarkerAction,
+    RemoveCacheAction,
+    RemoveOldFileAction,
+    RenameAction,
+)
+from .converter import Mp4Converter
+from .device import GPUDevice
+from .ffmpeg import DecoderFinder
+from .marker import Marker
+from .types import Filter, ManagerOptions, TaskOptions
+
+logger = logging.getLogger(__name__)
 
 
-class ConvertorManager:
-    def __init__(self):
-        pass
+class ConverterManager:
+    def __init__(self) -> None:
+        self.filters: list[Filter] = []
+        self.decoder_finder: DecoderFinder = DecoderFinder()
+        self.converter: Mp4Converter = Mp4Converter()
+        self.marker: Marker = Marker()
 
-    def find_files(self, path: str, deep: bool = True) -> list[str]:
-        # 1. 获取所有文件
+        self.after_actions: list[Action] = [
+            BrandMarkerAction(),
+            RemoveOldFileAction(),
+            RenameAction(),
+        ]
+
+    def set_filter(self, filter: Filter) -> None:
+        self.filters.append(filter)
+
+    def do_convert(
+        self, file: str, index: int, options: ManagerOptions, total: int = 1
+    ) -> bool:
+        file = os.path.normpath(file)
+        o = {"input_path": file, "current": index + 1, "total": total}
+        if decoder := self.decoder_finder.find(file):
+            o["decoder"] = decoder
+        else:
+            return False
+        task_options: TaskOptions = TaskOptions(**{**asdict(options), **o})
+        if not self.converter.convert(task_options):
+            return RemoveCacheAction()(task_options)
+
+        for action in sorted(self.after_actions, key=lambda x: x.priority):
+            flag = action(task_options)
+            if options.verbose:
+                logger.info(f"Action <{action.__class__.__name__}> <status = {flag}>")
+            if not flag:
+                return False
+
+        return True
+
+        # Todo: dataclass和TypedDict是否可以合并
+
+    def start(self, options: ManagerOptions) -> bool:
+
+        if not GPUDevice.have():
+            return False
+        if not os.path.exists(options.root):
+            return False
+        if os.path.isfile(options.root):
+            return self.do_convert(options.root, 1, options)
+        if not os.path.isdir(options.root):
+            return False
+
         finder: FileFinder = FileFinder()
-        files: list[str] = finder.find(path, -1 if deep else 0)
-        return files
 
-    def find_video_files(self, files: list[str]) -> list[dict[str, str]]:
-        # 2. 过滤出视频文件
-        video_filter: VideoFilter = VideoFilter()
-        video_files: list[dict[str, str]] = video_filter.invoke(files)
-        marker_filter: MarkerFilter = MarkerFilter()
-        video_files = marker_filter.invoke(video_files)
-        return video_files
-
-    def build_options(
-        self, video: dict[str, str], to: str, clean: bool = False, swap: bool = True
-    ) -> IConvertOptions:
-        raw_path = video.get("input", "")
-
-        filename_converter = FilenameConverter()
-        filename_converter.convert(raw_path, to, ext="mp4")
-
-        decoder: str = DecoderFinder().find(raw_path) or ""
-        encoder: str = EncoderFinder().find(raw_path) or ""
-
-        options: IConvertOptions = {
-            "decoder": decoder,
-            "encoder": encoder,
-            "input": raw_path,
-            "output": filename_converter.full_path,
-            "output_folder": filename_converter.folder,
-            "output_name": filename_converter.filename,
-            "output_ext": filename_converter.ext,
-            "clean": clean,
-            "swap": swap,
-            "swap_path": filename_converter.swap_path,
-        }
-        return options
-
-    def do_convert(self, options: IConvertOptions) -> None:
-
-        raw_path = options.get("input")
-        out_path = options.get("output")
-        decoder = options.get("decoder")
-        encoder = options.get("encoder")
-
-        if any([not raw_path, not out_path, not decoder, not encoder]):
-            return
-
-        converter: Mp4Converter = Mp4Converter()
-
-        flag = converter.convert(options)
-
-        output: str = pydash.get(options, "output")
-        marker: Marker = Marker()
-        flag = marker.brand(output)
-
-        assert raw_path
-        if options.get("clean") and flag:
-            send2trash.send2trash(raw_path)
-
-        swap_path: str = options.get("swap_path") or ""
-
-        assert out_path
-        if options.get("swap") and flag and os.path.exists(out_path):
-            os.rename(output, swap_path)
-
-    def start(
-        self, path: str, to: str, deep: bool = True, clean: bool = False, swap=True
-    ) -> None:
-        files: list[str] = (
-            self.find_files(path, deep) if os.path.isdir(path) else [path]
-        )
-        video_files: list[dict[str, str]] = self.find_video_files(files)
-
-        # 3. 转换视频文件, 并打上标记
-        for video in tqdm(video_files, desc="Converting videos"):
-            options = self.build_options(video, to, clean, swap)
-            self.do_convert(options)
+        if not options.deep:
+            files = finder.find(options.root, 0)
+            for f in self.filters:
+                files = f.filter(files, options)
+            for index, file in enumerate(files):
+                if not self.do_convert(file, index, options, len(files)):
+                    continue
+        else:
+            for root, _, files in os.walk(options.root):
+                logger.info(f"Collecting <from = {root}>")
+                n_files = [os.path.join(root, file) for file in files]
+                for f in self.filters:
+                    n_files = f.filter(n_files, options)
+                for index, file in enumerate(n_files):
+                    if not self.do_convert(file, index, options, len(n_files)):
+                        continue
+        return True
