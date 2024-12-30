@@ -1,5 +1,5 @@
 import logging
-from operator import is_
+
 import click
 
 from app.modules.decompression import main as decompress_main
@@ -9,7 +9,8 @@ from app.modules.video import (
     MarkerFilter,
     VideoFilter,
 )
-
+from app.modules.video.merge import MergeManager
+from app.modules.video.types import MergeManagerOptions
 
 logger = logging.getLogger(__name__)
 
@@ -43,6 +44,22 @@ def video_convert(path: str, **kwargs) -> None:
     m.set_filter(VideoFilter())
     m.set_filter(MarkerFilter())
 
+    m.start(options)
+
+
+@main.command()
+@click.option("--video_input", "-vi", required=True, type=click.Path())
+@click.option("--ef2_input", "-ei", required=False, type=click.Path())
+@click.option("--to", "-t", required=False, type=click.Path())
+@click.option("--verbose", "-v", is_flag=False)
+def merge(video_input: str, ef2_input, to: str, verbose: bool) -> None:
+    options: MergeManagerOptions = MergeManagerOptions(
+        video_input=video_input,
+        ef2_input=ef2_input or video_input,
+        output=to or video_input,
+        verbose=verbose,
+    )
+    m: MergeManager = MergeManager()
     m.start(options)
 
 

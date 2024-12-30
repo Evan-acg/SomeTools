@@ -1,4 +1,4 @@
-from app.modules.video import Mp4Converter, ManagerOptions
+from app.modules.video import Mp4Converter
 from app.modules.video.types import TaskOptions
 
 

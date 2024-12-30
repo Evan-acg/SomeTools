@@ -1,32 +1,11 @@
 import os
-import typing as t
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from app.composable.repr import customer_repr
 
-R = t.TypeVar("R")
-P = t.TypeVar("P")
-A = t.TypeVar("A")
-T = t.TypeVar("T")
-E = t.TypeVar("E")
 
-
-P_contra = t.TypeVar("P_contra", contravariant=True)
-R_co = t.TypeVar("R_co", covariant=True)
-
-
-class Filter(t.Protocol[P_contra, R_co]):
-    def filter(self, *args: P_contra, **kwargs: P_contra) -> R_co:
-        raise NotImplementedError()
-
-
-class Converter(t.Protocol[P_contra, R_co]):
-    def convert(self, *args: P_contra, **kwargs: P_contra) -> R_co:
-        raise NotImplementedError()
-
-
-@customer_repr
-@dataclass(frozen=True)
+@customer_repr()
+@dataclass
 class ManagerOptions:
     root: str = "."
     to: str = "."
@@ -38,8 +17,8 @@ class ManagerOptions:
     verbose: bool = False
 
 
-@customer_repr
-@dataclass(frozen=True)
+@customer_repr()
+@dataclass
 class TaskOptions(ManagerOptions):
     input_path: str = ""
     encoder: str = "h264_nvenc"
@@ -73,3 +52,42 @@ class TaskOptions(ManagerOptions):
                     self.folder, f"{self.filename}_{counter}.{self.ext}"
                 )
         return path
+
+
+@customer_repr()
+@dataclass
+class MergeManagerOptions:
+    video_input: str = "."
+    ef2_input: str = "."
+    output: str = "."
+    ext: str = "mp4"
+    verbose: bool = False
+
+
+@customer_repr(hidden=["link", "user_agent", "referer"])
+@dataclass
+class BiliBiliEf2Info(MergeManagerOptions):
+    link: str = ""
+    referer: str = ""
+    user_agent: str = ""
+    filename: str = ""
+    download_name: str = ""
+
+    @property
+    def name(self) -> str:
+        return os.path.splitext(self.filename)[0]
+
+    @property
+    def input_path(self) -> str:
+        return os.path.join(self.video_input, self.download_name)
+
+
+@customer_repr()
+@dataclass
+class ZipperInfo(MergeManagerOptions):
+    name: str = ""
+    videos: list[BiliBiliEf2Info] = field(default_factory=list)
+
+    @property
+    def output_path(self) -> str:
+        return os.path.join(self.output, f"{self.name}.{self.ext}")

@@ -31,15 +31,15 @@ class Loader(ABC):
 
     @abstractmethod
     def load(self: t.Self, path: str) -> dict[str, t.Any]:
-        pass
+        raise NotImplementedError()
 
     @abstractmethod
     def loads(self: t.Self, paths: list[str]) -> list[dict[str, t.Any]]:
-        pass
+        raise NotImplementedError()
 
     @abstractmethod
     def filter(self: t.Self, path: str) -> bool:
-        pass
+        raise NotImplementedError()
 
 
 class YamlLoader(Loader):

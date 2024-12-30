@@ -47,6 +47,7 @@ class VideoFilter:
         "3gp",
         "ts",
         "webm",
+        "m4a",
     )
 
     def is_video(self, file: str) -> bool:
@@ -60,5 +61,20 @@ class VideoFilter:
             items = list(filter(self.is_video, files))
         else:
             items = []
-        logger.info(f"VideoFilter <files = {len(items)}>")
+        logger.info(f"{self.__class__.__name__} <files = {len(items)}>")
         return items
+
+
+class Ef2Filter:
+    def is_ef2_file(self, file: str) -> bool:
+        return file.endswith(".ef2")
+
+    def filter(self, files: list[str]) -> list[str]:
+        items = list(filter(self.is_ef2_file, files))
+        logger.info(f"{self.__class__.__name__} <files = {len(items)}>")
+        return items
+
+
+class Filter(t.Protocol):
+    def filter(self, *args: t.Any, **kwargs: t.Any) -> t.Any:
+        raise NotImplementedError()
