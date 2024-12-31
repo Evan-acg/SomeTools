@@ -3,7 +3,21 @@ addopts = "-vs --lf -vv --cov --cov-report=html"
 testpaths= [
     "tests"
 ]
+
 markers = [
     "decompression: mark a test to run only if it is decompression module",
     "only: mark a test to run only",
 ]
+
+[tool.coverage.run]
+branch = true
+source = [
+    "app"
+]
+
+[tool.coverage.report]
+show_missing = true
+exclude_also = [
+    "@(abc\\.)?abstractmethod"
+]
+
