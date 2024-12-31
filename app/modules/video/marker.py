@@ -30,7 +30,7 @@ class Marker:
             return False
 
         try:
-            with open(path, "+rb") as file:
+            with open(path, "r+b") as file:
                 file.seek(-1, 2)
                 file.write(symbol)
                 return True

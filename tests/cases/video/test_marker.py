@@ -54,3 +54,31 @@ class TestMarker:
     def test_is_branded_file_not_exist(self, mocker: MockFixture, marker: Marker):
         mocker.patch("os.path.exists", return_value=False)
         assert not marker.is_branded("test_path", b"B")
+
+    def test_brand_default_symbol(self, mocker: MockFixture, marker: Marker):
+        mocker.patch("os.path.exists", return_value=True)
+        mock_open = mocker.mock_open()
+        mocker.patch("builtins.open", mock_open)
+
+        assert marker.brand("test_path")
+        mock_open().write.assert_called_once_with(b"C")
+
+    def test_is_branded_default_symbol(self, mocker: MockFixture, marker: Marker):
+        mocker.patch("os.path.exists", return_value=True)
+        mock_open = mocker.mock_open(read_data=b"C")
+        mocker.patch("builtins.open", mock_open)
+
+        assert marker.is_branded("test_path")
+        mock_open().read.assert_called_once_with(1)
+
+    def test_brand_exception(self, mocker: MockFixture, marker: Marker):
+        mocker.patch("os.path.exists", return_value=True)
+        mocker.patch("builtins.open", side_effect=Exception("Test Exception"))
+
+        assert not marker.brand("test_path", b"B")
+
+    def test_is_branded_exception(self, mocker: MockFixture, marker: Marker):
+        mocker.patch("os.path.exists", return_value=True)
+        mocker.patch("builtins.open", side_effect=Exception("Test Exception"))
+
+        assert not marker.is_branded("test_path", b"B")
