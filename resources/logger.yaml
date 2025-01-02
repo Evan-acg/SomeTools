@@ -5,9 +5,11 @@ logger:
 
   formatters:
     simple:
-      format: "%(asctime)s | %(levelname)-8s | %(name)-30.50s:%(lineno)-3d | %(message)s"
+      format: "%(asctime)s | %(levelname)-8s | %(name)-20.30s:%(lineno)-3d | %(message)s"
+      "()": app.core.logger.CustomFormatter
     detailed:
-      format: "%(asctime)s | %(levelname)-8s | %(name)-30.50s:%(lineno)-3d | %(threadName)-16s | %(message)s"
+      format: "%(asctime)s | %(levelname)-8s | %(name)-20.30s:%(lineno)-3d | %(threadName)-16s | %(message)s"
+      "()": app.core.logger.CustomFormatter
 
   handlers:
     console:

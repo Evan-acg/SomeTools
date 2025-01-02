@@ -1,7 +1,18 @@
 import logging.config
 import os
+import sys
 
-from app.core.config import Config
+from .config import Config
+from .path import FilePathCollapse
+
+logging.StreamHandler
+
+
+class CustomFormatter(logging.Formatter):
+    def format(self, record: logging.LogRecord) -> str:
+        fn: FilePathCollapse = FilePathCollapse()
+        record.name = fn(record.name, sep=".")
+        return super().format(record)
 
 
 def init_logger_folder_and_file(config):

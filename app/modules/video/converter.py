@@ -5,7 +5,7 @@ import typing as t
 
 from tqdm import tqdm
 
-from app.core.path import FileFinder
+from app.core.path import FileFinder, FilePathCollapse
 from .filter import Filter
 
 from .action import (
@@ -46,8 +46,13 @@ class Mp4Converter:
     def convert(self, options: TaskOptions) -> bool:
         self.options = options
 
+        collapse: FilePathCollapse = FilePathCollapse()
+
         self.bar = tqdm(
-            total=100.0, unit="%", desc=options.input_path, dynamic_ncols=True
+            total=100.0,
+            unit="%",
+            desc=collapse(options.input_path, sep=os.sep),
+            dynamic_ncols=True,
         )
         ffmpeg = FFMpeg()
         ffmpeg.add_progress(self.on_progress)
