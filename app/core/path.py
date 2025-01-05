@@ -37,6 +37,9 @@ class FileFinder:
 
 class FilePathCollapse:
     def __call__(self, path: str, sep: str) -> str:
+        path = os.path.normpath(path)
+        if path.startswith("\\\\"):
+            return self.do_nas_path(path, sep)
         if sep == os.sep:
             return self.do_windows_path(path, sep)
         elif sep == ".":
@@ -60,3 +63,17 @@ class FilePathCollapse:
         collapsed_names = [x[0] if x else "" for x in names[:-1]]
         processed_names = [*collapsed_names, last_name]
         return sep.join(processed_names)
+
+    def do_nas_path(self, path: str, sep: str) -> str:
+        nas_sep = "\\"
+        parts = path.split(nas_sep)
+        if len(parts) < 5:
+            return path
+        collapsed_parts = [parts[0][:3]]
+        for part in parts[1:4]:
+            if part:
+                collapsed_parts.append(part[0])
+            else:
+                collapsed_parts.append("")
+        collapsed_parts.extend(parts[4:])
+        return sep.join(collapsed_parts)
