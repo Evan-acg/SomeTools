@@ -1,18 +1,16 @@
-from dataclasses import dataclass
 import json
 import logging
 import os
 import re
 import typing as t
 from abc import ABC
+from dataclasses import dataclass
 
 import pydash
-from tqdm import tqdm
 
-from app.modules.video.device import GPUDevice
+from app.core.device import GPUDevice
 
 from .shell import IExecuteResult, ShellRunner
-
 
 logger = logging.getLogger(__name__)
 

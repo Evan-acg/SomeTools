@@ -1,3 +1,4 @@
+from logging import config
 import os
 import typing as t
 from abc import ABC, abstractmethod
@@ -41,6 +42,10 @@ class Loader(ABC):
     def filter(self: t.Self, path: str) -> bool:
         raise NotImplementedError()
 
+    @abstractmethod
+    def dump(self: t.Self, path: str, data: dict[str, t.Any]) -> None:
+        raise NotImplementedError()
+
 
 class YamlLoader(Loader):
     def gather_files(self, path):
@@ -70,6 +75,10 @@ class YamlLoader(Loader):
 
         return [self._load(p) for p in config_paths]
 
+    def dump(self: t.Self, path: str, data: dict[str, t.Any]) -> None:
+        with open(path, "w") as f:
+            yaml.dump(data, f)
+
 
 default_position: list[str] = ["./resources"]
 
@@ -84,8 +93,27 @@ class Config:
         self.loader = loader
         return self
 
-    def get(self: t.Self, key: str, default: t.Any) -> t.Any:
-        return self.container.get(key, default)
+    def get(self: t.Self, key: str, default: t.Any = None) -> t.Any:
+        return pydash.get(self.container, key, default)
+
+    def set(self: t.Self, key: str, value: t.Any) -> None:
+        pydash.set_(self.container, key, value)
+
+    def sync_to_file(self, filename: str, path: str, data: t.Any) -> None:
+        config_paths = default_position.copy()
+        files = [
+            os.path.join(root, file)
+            for cp in config_paths
+            for root, _, files in os.walk(cp)
+            for file in files
+        ]
+        target_file = next(
+            (file for file in files if os.path.basename(file) == filename), None
+        )
+        if target_file:
+            config_data = self.loader.load(target_file)
+            pydash.set_(config_data, path, data)
+            self.loader.dump(target_file, config_data)
 
     def init(self: t.Self, path: str | None = None) -> None:
         config_paths: list[str] = default_position.copy()

@@ -74,7 +74,7 @@ def is_branded(path: str):
 
 @main.command()
 def crawl() -> None:
-    options = CrawlerOptions(to=r"E:\\")
+    options = CrawlerOptions(to=r"E:\\", deep=True, override=False)
     crawler = BiliBiliCrawlerManager(options)
     crawler.start()
 

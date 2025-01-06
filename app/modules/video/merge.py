@@ -1,11 +1,11 @@
 import os
 from dataclasses import asdict
 
+from app.core.ffmpeg import FFMpeg
 from app.core.file import Reader
 from app.core.path import FileFinder
 
 from .action import ActionOptions, RemoveCacheAction
-from .ffmpeg import FFMpeg
 from .filter import Ef2Filter
 from .refiner import BiliBiliEf2Refiner
 from .types import BiliBiliEf2Info, MergeManagerOptions, ZipperInfo

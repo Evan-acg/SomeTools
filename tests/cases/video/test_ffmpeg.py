@@ -6,8 +6,8 @@ import pydash
 import pytest
 from pytest_mock import MockFixture
 
-from app.modules.video.ffmpeg import DecoderFinder, FFMpeg, FFProbe
-from app.modules.video import ffmpeg
+from app.core.ffmpeg import DecoderFinder, FFMpeg, FFProbe
+from app.core import ffmpeg
 
 
 @pytest.fixture

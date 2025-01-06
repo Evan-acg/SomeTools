@@ -1,9 +1,10 @@
 from pytest_mock import MockFixture
-from app.modules.video.device import GPUDevice
+from app.core.device import GPUDevice
 
 
 class TestGPUDevice:
     pass
+
     def test_have_nvidia_gpu(self, mocker: MockFixture):
         """
         Test GPUDevice.have_nvidia_gpu method.
@@ -34,20 +35,20 @@ class TestGPUDevice:
         """
         Test GPUDevice.have method.
         """
-        mocker.patch.object(GPUDevice, 'have_nvidia_gpu', return_value=True)
-        mocker.patch.object(GPUDevice, 'have_amd_gpu', return_value=False)
+        mocker.patch.object(GPUDevice, "have_nvidia_gpu", return_value=True)
+        mocker.patch.object(GPUDevice, "have_amd_gpu", return_value=False)
         GPUDevice._flag = None
 
         assert GPUDevice.have() is True
 
-        mocker.patch.object(GPUDevice, 'have_nvidia_gpu', return_value=False)
-        mocker.patch.object(GPUDevice, 'have_amd_gpu', return_value=True)
+        mocker.patch.object(GPUDevice, "have_nvidia_gpu", return_value=False)
+        mocker.patch.object(GPUDevice, "have_amd_gpu", return_value=True)
         GPUDevice._flag = None
 
         assert GPUDevice.have() is True
 
-        mocker.patch.object(GPUDevice, 'have_nvidia_gpu', return_value=False)
-        mocker.patch.object(GPUDevice, 'have_amd_gpu', return_value=False)
+        mocker.patch.object(GPUDevice, "have_nvidia_gpu", return_value=False)
+        mocker.patch.object(GPUDevice, "have_amd_gpu", return_value=False)
         GPUDevice._flag = None
 
         assert GPUDevice.have() is False

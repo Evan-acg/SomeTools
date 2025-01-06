@@ -1,13 +1,14 @@
 import logging
 import os
-from dataclasses import asdict
 import typing as t
+from dataclasses import asdict
 
 from tqdm import tqdm
 
 from app.core.path import FileFinder, FilePathCollapse
-from .filter import Filter
 
+from app.core.device import GPUDevice
+from app.core.ffmpeg import DecoderFinder, FFMpeg, FFMpegProgressInfo
 from .action import (
     Action,
     ActionOptions,
@@ -16,8 +17,7 @@ from .action import (
     RemoveOldFileAction,
     RenameAction,
 )
-from .device import GPUDevice
-from .ffmpeg import DecoderFinder, FFMpeg, FFMpegProgressInfo
+from .filter import Filter
 from .marker import Marker
 from .types import ManagerOptions, TaskOptions
 

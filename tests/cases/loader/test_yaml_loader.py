@@ -22,7 +22,7 @@ def mock_os_walk(root) -> list[tuple[str, list[str], list[str]]]:
     ]
 
 
-class TestConfigLoader:
+class TestYamlLoader:
     @param(
         "item",
         [

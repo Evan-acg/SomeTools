@@ -15,6 +15,16 @@ class CustomFormatter(logging.Formatter):
         return super().format(record)
 
 
+class ProjectFilter(logging.Filter):
+    def filter(self, record: logging.LogRecord) -> bool:
+        return record.name.startswith("app")
+
+
+class DebugFilter(logging.Filter):
+    def filter(self, record) -> bool:
+        return record.levelname == logging.DEBUG
+
+
 def init_logger_folder_and_file(config):
     for handler in config.get("handlers", {}).values():
         if "filename" not in handler:

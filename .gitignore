@@ -224,5 +224,6 @@ Temporary Items
 *.rar?
 *.7z?
 local.yaml
+crawler.yaml
 logs
 play.py

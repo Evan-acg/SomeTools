@@ -1,7 +1,8 @@
 import logging
 
+from app.core.ffmpeg import *
+
 from .converter import *
-from .ffmpeg import *
 from .filter import *
 from .main import *
 from .marker import *
