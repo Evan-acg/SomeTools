@@ -1,11 +1,15 @@
+annotated-types==0.7.0
 Brotli==1.1.0
 click==8.1.8
 colorama==0.4.6
 coverage==7.6.10
+dacite==1.8.1
 debugpy==1.8.11
 inflate64==1.0.1
 iniconfig==2.0.0
 multivolumefile==0.2.3
+mypy==1.14.1
+mypy-extensions==1.0.0
 packaging==24.2
 patool==3.1.0
 pluggy==1.5.0
@@ -13,6 +17,8 @@ psutil==6.1.1
 py7zr==0.22.0
 pybcj==1.0.3
 pycryptodomex==3.21.0
+pydantic==2.10.4
+pydantic_core==2.27.2
 pydash==8.0.4
 pyppmd==1.1.1
 pytest==8.3.4
