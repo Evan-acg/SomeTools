@@ -2,6 +2,7 @@ import logging
 
 import click
 
+from app.modules.crawler.bilibili import BiliBiliCrawlerManager, CrawlerOptions
 from app.modules.decompression import main as decompress_main
 from app.modules.video import (
     ConverterManager,
@@ -69,6 +70,13 @@ def is_branded(path: str):
     with open(path, "rb") as f:
         f.seek(-1, 2)
         print(f.read(1))
+
+
+@main.command()
+def crawl() -> None:
+    options = CrawlerOptions(to=r"E:\\")
+    crawler = BiliBiliCrawlerManager(options)
+    crawler.start()
 
 
 @main.command()

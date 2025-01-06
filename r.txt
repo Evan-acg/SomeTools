@@ -1,10 +1,13 @@
 annotated-types==0.7.0
 Brotli==1.1.0
+certifi==2024.12.14
+charset-normalizer==3.4.1
 click==8.1.8
 colorama==0.4.6
 coverage==7.6.10
 dacite==1.8.1
 debugpy==1.8.11
+idna==3.10
 inflate64==1.0.1
 iniconfig==2.0.0
 multivolumefile==0.2.3
@@ -27,6 +30,7 @@ pytest-mock==3.14.0
 PyYAML==6.0.2
 pyzstd==0.16.2
 rarfile==4.2
+requests==2.32.3
 Send2Trash==1.8.3
 texttable==1.7.0
 tqdm==4.67.1
