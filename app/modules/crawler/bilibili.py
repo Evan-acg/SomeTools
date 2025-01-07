@@ -18,6 +18,7 @@ from tqdm import tqdm
 
 from app.core.config import Config
 from app.core.ffmpeg import FFMpeg
+from app.modules.crawler.history import History
 
 logger = logging.getLogger(__name__)
 
@@ -163,11 +164,13 @@ class BiliBiliCrawlerManager:
 
         return {"User-Agent": agent, "Cookies": cookies, "referer": ref}
 
-    def process_one_video(self, video: dict, item: IAuthor, index: int = 1) -> bool:
+    def process_one_video(
+        self, video: dict, item: IAuthor, history: History, index: int = 1
+    ) -> bool:
         bv = video["bvid"]
         title = sanitize_filename(video["title"])
 
-        if not self.options.override and bv in item.get("article_ids", []):
+        if not self.options.override and bv in history:
             return False
 
         url: str = self.url.format(bv)
@@ -182,18 +185,20 @@ class BiliBiliCrawlerManager:
         task = Task(task_options)
         return task.start()
 
-    def update_history(self: t.Self, item, index: int) -> None:
-        filename = self.config.get("crawler_config.filename", "")
-        path: str = f"history.{index}"
-        author: IAuthor = self.config.get(path, {})
-
+    def update_history(self: t.Self, item, index: int, history: History) -> None:
         bv = item["bvid"]
-
-        author.setdefault("article_ids", []).append(bv)
-        self.config.set(path, author)
-        self.config.sync_to_file(filename, path, author)
+        title = item["title"]
+        history.store([bv, title])
 
     def process_one_author(self, item: IAuthor, index: int) -> None:
+        history_folder: str = self.config.get("crawler_config.history_folder", ".")
+        history_ext: str = self.config.get("crawler_config.history_ext", ".txt")
+        history_path: str = os.path.join(
+            history_folder, f"{item["author_id"]}{history_ext}"
+        )
+        history = History(history_path)
+        history.load()
+
         page_count = 0
 
         driver.listen.start(self.href)
@@ -209,15 +214,12 @@ class BiliBiliCrawlerManager:
             body = resp.response.body
             videos = pydash.get(body, "data.list.vlist", [])
             for v in tqdm(videos, desc="Processing", unit="PCS"):
-                if not self.options.deep and v.get("bvid") in item.get(
-                    "article_ids", []
-                ):
+                if not self.options.deep and v.get("bvid") in history:
                     logger.info("All newer videos have been downloaded")
                     return
 
-                flag = self.process_one_video(v, item, page_count)
-                if flag:
-                    self.update_history(v, index)
+                if self.process_one_video(v, item, history, page_count):
+                    self.update_history(v, index, history)
 
             if next_page := driver.ele(f"xpath:{self.xpath}"):
                 if time.time() - start < 5:
@@ -227,10 +229,11 @@ class BiliBiliCrawlerManager:
                 return
 
     def start(self) -> None:
-        history: list[IAuthor] = self.config.get("history", [])
+        history: list[IAuthor] = self.config.get("histories", [])
 
         for index, item in enumerate(history):
             self.process_one_author(item, index)
 
 
 # 添加指定BV号下载合并功能
+# 将常量字符串提取到配置文件
