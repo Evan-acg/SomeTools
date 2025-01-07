@@ -1,8 +1,12 @@
 import logging
+from re import M
 
 import click
 
-from app.modules.crawler.bilibili import BiliBiliCrawlerManager, CrawlerOptions
+from app.modules.crawler.action import ActionContext
+from app.modules.crawler.bilibili import BilibiliCrawlerManager, BilibiliTask
+from app.modules.crawler.bilibili import ManagerQO as MTP
+from app.modules.crawler.bilibili import TaskQO as CTP
 from app.modules.decompression import main as decompress_main
 from app.modules.video import (
     ConverterManager,
@@ -11,7 +15,7 @@ from app.modules.video import (
     VideoFilter,
 )
 from app.modules.video.merge import MergeManager
-from app.modules.video.types import MergeManagerOptions
+from app.modules.video.types import MergeManagerOptions, TaskOptions
 
 logger = logging.getLogger(__name__)
 
@@ -73,10 +77,13 @@ def is_branded(path: str):
 
 
 @main.command()
-def crawl() -> None:
-    options = CrawlerOptions(to=r"E:\\", deep=True, override=False)
-    crawler = BiliBiliCrawlerManager(options)
-    crawler.start()
+@click.option("--output", "-o", required=True, type=click.Path())
+@click.option("--override", "-w", is_flag=False)
+@click.option("--ergodic", "-e", is_flag=False)
+def crawl(output: str, override: bool, ergodic: bool) -> None:
+    op: MTP = MTP(to=output, override=override, ergodic=ergodic)
+    m: BilibiliCrawlerManager = BilibiliCrawlerManager()
+    m.start(op)
 
 
 @main.command()
