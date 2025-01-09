@@ -159,4 +159,5 @@ class BilibiliCrawlerManager:
         }
 
         for task in tasks:
+            options.to = options.to or task.get("folder")
             self.process_one_author(task, options)
