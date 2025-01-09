@@ -4,7 +4,7 @@ import random
 import re
 import time
 import typing as t
-from concurrent.futures import ProcessPoolExecutor
+from concurrent.futures import ThreadPoolExecutor
 
 import pydash
 from pathvalidate import sanitize_filename
@@ -135,7 +135,7 @@ class BilibiliCrawlerManager:
             videos = list(filter(lambda x: x.get("bvid") not in history, videos))
 
             bar = tqdm(total=len(videos), dynamic_ncols=True)
-            with ProcessPoolExecutor(max_workers=3) as executor:
+            with ThreadPoolExecutor(max_workers=3) as executor:
                 for video in videos:
                     args = (video, task, options, history, current_page)
                     f = executor.submit(self.process_one_article, *args)

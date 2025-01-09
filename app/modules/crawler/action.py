@@ -2,11 +2,12 @@ import json
 import os
 import re
 import typing as t
+from concurrent.futures import ALL_COMPLETED, ThreadPoolExecutor, wait
 
 import pydash
 import requests
-from requests import Response
 import send2trash
+from requests import Response
 from tqdm import tqdm
 
 from app.core.ffmpeg import FFMpeg
@@ -81,7 +82,7 @@ class StreamDownloadAction(DownloadAction):
 
     def __init__(self, payload, use_bar: bool = False) -> None:
         super().__init__(payload)
-        self.bar: tqdm | None = tqdm(total=100, dynamic_ncols=True) if use_bar else None
+        self.bar: tqdm | None = None
 
     @property
     def save_path(self) -> str:
@@ -103,6 +104,29 @@ class StreamDownloadAction(DownloadAction):
         self.bar.set_description(desc)
         self.bar.n = percentage
 
+    def refine_chunk(self, size: int, chunk_size: int) -> list[tuple[int, int]]:
+        step: int = chunk_size
+        scope: range = range(0, size, step)
+        ret: list[tuple[int, int]] = [
+            (scope[i], min(scope[i + 1] - 1, size - 1)) for i in range(len(scope) - 1)
+        ]
+        if ret[-1][1] < size - 1:
+            ret.append((ret[-1][1] + 1, size - 1))
+        return ret
+
+    def do_download(self, url: str, scope: tuple[int, int]) -> None:
+        headers = {**self.headers, "Range": f"bytes={scope[0]}-{scope[1]}"}
+        try:
+            resp = requests.get(url, headers=headers, stream=True)
+            resp.raise_for_status()
+            with open(self.save_path, "rb+") as f:
+                f.seek(scope[0])
+                for chunk in resp.iter_content(chunk_size=1024):
+                    if chunk:
+                        f.write(chunk)
+        except Exception:
+            pass
+
     @t.override
     def met(self) -> bool:
         return bool(self.url)
@@ -117,20 +141,27 @@ class StreamDownloadAction(DownloadAction):
             os.makedirs(folder)
 
         try:
-            resp: Response = requests.get(url, headers=self.headers, stream=True)
+            resp = requests.head(url, headers=self.headers)
+            resp.raise_for_status()
             total_size: int = int(resp.headers.get("content-length", 0))
-            block_size: int = 1024
-            counter: int = 0
-            with open(self.save_path, "wb") as f:
-                for d in resp.iter_content(block_size):
-                    f.write(d)
-                    self.on_progress(d, block_size, total_size, counter)
-                    counter += len(d)
+            scopes = self.refine_chunk(total_size, 1024 * 1024)  # 1MB
+
+            if os.path.exists(self.save_path):
+                downloaded_size: int = os.path.getsize(self.save_path)
+                scopes = [
+                    (start, end) for start, end in scopes if start >= downloaded_size
+                ]
+            else:
+                with open(self.save_path, "wb") as f:
+                    pass
+
+            with ThreadPoolExecutor() as pool:
+                tasks = [pool.submit(self.do_download, url, scope) for scope in scopes]
+                wait(tasks, return_when=ALL_COMPLETED)
+
         except Exception:
             return False
 
-        if total_size != 0 and counter != total_size:
-            return False
         return True
 
 
