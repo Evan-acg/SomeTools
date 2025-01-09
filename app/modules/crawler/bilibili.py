@@ -133,15 +133,14 @@ class BilibiliCrawlerManager:
                 return
 
             videos = list(filter(lambda x: x.get("bvid") not in history, videos))
-            if len(videos) <= 0:
-                return
 
-            bar = tqdm(total=len(videos), dynamic_ncols=True)
-            with ThreadPoolExecutor(max_workers=3) as executor:
-                for video in videos:
-                    args = (video, task, options, history, current_page)
-                    f = executor.submit(self.process_one_article, *args)
-                    f.add_done_callback(lambda _: bar.update(1))
+            if len(videos) > 0:
+                bar = tqdm(total=len(videos), dynamic_ncols=True)
+                with ThreadPoolExecutor(max_workers=3) as executor:
+                    for video in videos:
+                        args = (video, task, options, history, current_page)
+                        f = executor.submit(self.process_one_article, *args)
+                        f.add_done_callback(lambda _: bar.update(1))
 
             self.delay(start)
 
