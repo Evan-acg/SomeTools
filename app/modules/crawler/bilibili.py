@@ -1,6 +1,7 @@
 import logging
 import os
 import random
+import re
 import time
 import typing as t
 
@@ -20,7 +21,7 @@ from .action import (
     RefineInfoAction,
     VideoDownloadAction,
 )
-from .const import DATA_API, SPACE_PAGE_URL, VIDEO_URL, XPATH
+from .const import DATA_API, SPACE_PAGE_URL, TOTAL_PAGE_XPATH, VIDEO_URL, XPATH
 from .entity import ManagerQO, TaskQO
 from .history import History
 from .task import Task
@@ -86,6 +87,11 @@ class BilibiliCrawlerManager:
             return flag
         return False
 
+    def find_total_pages(self) -> int:
+        el = self.browser.ele(f"xpath:{TOTAL_PAGE_XPATH}")
+        pages = re.search(r"(\d+)", el.text)
+        return int(pages.group(1)) if pages else 1
+
     def process_one_author(self, task, options: ManagerQO) -> None:
         config = Config()
         uid: str = task.get("author_id")
@@ -100,7 +106,9 @@ class BilibiliCrawlerManager:
         while True:
             current_page += 1
             start = time.time()
-            message: str = f"Crawling<author:{uname}, page: {current_page}>"
+            message: str = (
+                f"Crawling<author={uname}, page={current_page}/{self.find_total_pages()}>"
+            )
             logger.info(message)
 
             resp = self.browser.listen.wait()
