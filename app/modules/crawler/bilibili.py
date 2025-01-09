@@ -1,12 +1,11 @@
-from concurrent.futures import ProcessPoolExecutor
 import logging
 import os
 import random
 import re
 import time
 import typing as t
+from concurrent.futures import ProcessPoolExecutor
 
-import concurrent
 import pydash
 from pathvalidate import sanitize_filename
 from tqdm import tqdm
@@ -100,6 +99,14 @@ class BilibiliCrawlerManager:
             logger.info(message)
             time.sleep(self.req_interval - c + random.uniform(0, 2))
 
+    def can_continue(self, videos: list, options: ManagerQO, history: History) -> bool:
+        for v in videos:
+            vid = v.get("bvid")
+            if not options.ergodic and vid in history:
+                logger.info("Crawler reached the last crawled video, stopping...")
+                return False
+        return True
+
     def process_one_author(self, task, options: ManagerQO) -> None:
         config = Config()
         uid: str = task.get("author_id")
@@ -122,18 +129,17 @@ class BilibiliCrawlerManager:
             logger.info(message)
 
             videos = pydash.get(resp.response.body, "data.list.vlist", [])
-            with tqdm(videos, unit="V") as t:
-                for v in videos:
-                    vid: str = v.get("bvid")
-                    if not options.ergodic and vid in history:
-                        logger.info(
-                            "Crawler reached the last crawled video, stopping..."
-                        )
-                        return
-                    desc: str = f"{vid} - {v.get('title')}"
-                    t.set_description(desc)
-                    self.process_one_article(v, task, options, history, current_page)
-                    t.update(1)
+            if not self.can_continue(videos, options, history):
+                return
+
+            videos = list(filter(lambda x: x.get("bvid") not in history, videos))
+
+            bar = tqdm(total=len(videos), dynamic_ncols=True)
+            with ProcessPoolExecutor(max_workers=3) as executor:
+                for video in videos:
+                    args = (video, task, options, history, current_page)
+                    f = executor.submit(self.process_one_article, *args)
+                    f.add_done_callback(lambda _: bar.update(1))
 
             self.delay(start)
 

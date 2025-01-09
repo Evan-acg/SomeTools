@@ -1,6 +1,6 @@
 import logging.config
 import os
-import sys
+
 
 from .config import Config
 from .path import FilePathCollapse

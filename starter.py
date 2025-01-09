@@ -1,12 +1,11 @@
 import logging
-from re import M
 
 import click
 
-from app.modules.crawler.action import ActionContext
-from app.modules.crawler.bilibili import BilibiliCrawlerManager, BilibiliTask
+from app.core.config import init_config
+from app.core.logger import init_logger
+from app.modules.crawler.bilibili import BilibiliCrawlerManager
 from app.modules.crawler.bilibili import ManagerQO as MTP
-from app.modules.crawler.bilibili import TaskQO as CTP
 from app.modules.decompression import main as decompress_main
 from app.modules.video import (
     ConverterManager,
@@ -15,7 +14,7 @@ from app.modules.video import (
     VideoFilter,
 )
 from app.modules.video.merge import MergeManager
-from app.modules.video.types import MergeManagerOptions, TaskOptions
+from app.modules.video.types import MergeManagerOptions
 
 logger = logging.getLogger(__name__)
 
@@ -92,4 +91,7 @@ def play() -> None:
 
 
 if __name__ == "__main__":
+
+    init_config()
+    init_logger()
     main()

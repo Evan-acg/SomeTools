@@ -1,13 +1,12 @@
-from logging import config
 import os
+import threading
 import typing as t
 from abc import ABC, abstractmethod
 
 import pydash
 import yaml
 
-
-from app.composable import singleton
+from app.composable.singleton import SingletonMeta
 
 INCLUDE_FOLDERS: list[str] = ["resources", "app", "config"]
 INCLUDE_EXTENSIONS: tuple[str, ...] = (".yaml", ".yml")
@@ -83,8 +82,9 @@ class YamlLoader(Loader):
 default_position: list[str] = ["./resources"]
 
 
-@singleton
-class Config:
+class Config(metaclass=SingletonMeta):
+    inited: bool = False
+
     def __init__(self: t.Self) -> None:
         self.loader: Loader = YamlLoader()
         self.container: dict[str, t.Any] = {}
@@ -127,4 +127,6 @@ class Config:
 
 
 def init_config() -> None:
-    Config().init()
+    if not Config.inited:
+        Config().init()
+        Config.inited = True
