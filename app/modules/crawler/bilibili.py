@@ -62,12 +62,7 @@ class BilibiliCrawlerManager:
         if not all([vid, title]):
             return False
 
-        existed_message: str = (
-            f"Skipping video {vid}:{title} as it has been downloaded before"
-        )
-
         if not options.override and vid in history:
-            logger.info(existed_message)
             return False
 
         url: str = VIDEO_URL.format(vid)
@@ -80,7 +75,6 @@ class BilibiliCrawlerManager:
         )
 
         if not options.override and os.path.exists(top.video_path):
-            logger.info(existed_message)
             if vid not in history:
                 history.store([vid, title])
             return False
@@ -119,14 +113,20 @@ class BilibiliCrawlerManager:
             resp = self.browser.listen.wait()
             videos = pydash.get(resp.response.body, "data.list.vlist", [])
 
-            for v in tqdm(videos, unit="V"):
-                if not options.ergodic and v.get("bvid") in history:
-                    logger.info("Crawler reached the last crawled video, stopping...")
-                    return
-                if not self.process_one_article(
-                    v, task, options, history, current_page
-                ):
-                    continue
+            with tqdm(videos, unit="V") as t:
+                for v in videos:
+                    vid: str = v.get("bvid")
+                    if not options.ergodic and vid in history:
+                        logger.info(
+                            "Crawler reached the last crawled video, stopping..."
+                        )
+                        return
+                    desc: str = f"{vid} - {v.get('title')}"
+                    t.set_description(desc)
+                    if not self.process_one_article(
+                        v, task, options, history, current_page
+                    ):
+                        continue
 
             # 加入延时防止触发反爬虫策略
             if c := (time.time() - start) < self.req_interval:
