@@ -1,3 +1,4 @@
+from concurrent.futures import ProcessPoolExecutor
 import logging
 import os
 import random
@@ -5,6 +6,7 @@ import re
 import time
 import typing as t
 
+import concurrent
 import pydash
 from pathvalidate import sanitize_filename
 from tqdm import tqdm
@@ -91,6 +93,13 @@ class BilibiliCrawlerManager:
         pages = re.search(r"(\d+)", el.text)
         return int(pages.group(1)) if pages else 1
 
+    def delay(self, start: float) -> None:
+        # 加入延时防止触发反爬虫策略
+        if c := (time.time() - start) < self.req_interval:
+            message = f"Sleeping for {self.req_interval - c} seconds"
+            logger.info(message)
+            time.sleep(self.req_interval - c + random.uniform(0, 2))
+
     def process_one_author(self, task, options: ManagerQO) -> None:
         config = Config()
         uid: str = task.get("author_id")
@@ -103,16 +112,16 @@ class BilibiliCrawlerManager:
         self.browser.get(SPACE_PAGE_URL.format(uid))
 
         while True:
+            resp = self.browser.listen.wait()
+
             current_page += 1
             start = time.time()
             message: str = (
-                f"Crawling<author={uname}, page={current_page}/{self.find_total_pages()}>"
+                f"Crawling<author={uname}, id={uid}, page={current_page}/{self.find_total_pages()}>"
             )
             logger.info(message)
 
-            resp = self.browser.listen.wait()
             videos = pydash.get(resp.response.body, "data.list.vlist", [])
-
             with tqdm(videos, unit="V") as t:
                 for v in videos:
                     vid: str = v.get("bvid")
@@ -123,16 +132,10 @@ class BilibiliCrawlerManager:
                         return
                     desc: str = f"{vid} - {v.get('title')}"
                     t.set_description(desc)
-                    if not self.process_one_article(
-                        v, task, options, history, current_page
-                    ):
-                        continue
+                    self.process_one_article(v, task, options, history, current_page)
+                    t.update(1)
 
-            # 加入延时防止触发反爬虫策略
-            if c := (time.time() - start) < self.req_interval:
-                message = f"Sleeping for {self.req_interval - c} seconds"
-                logger.info(message)
-                time.sleep(self.req_interval - c + random.uniform(0, 2))
+            self.delay(start)
 
             if next_page := self.browser.ele(f"xpath:{XPATH}"):
                 next_page.click()
