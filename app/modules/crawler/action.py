@@ -107,24 +107,21 @@ class StreamDownloadAction(DownloadAction):
         self.bar.set_description(desc)
         self.bar.n = percentage
 
-    def refine_chunk(self, size: int, chunk_size: int) -> list[tuple[int, int]]:
-        step: int = chunk_size
-        scope: range = range(0, size, step)
-        ret: list[tuple[int, int]] = [
-            (scope[i], min(scope[i + 1] - 1, size - 1)) for i in range(len(scope) - 1)
-        ]
-        if ret[-1][1] < size - 1:
-            ret.append((ret[-1][1] + 1, size - 1))
-        return ret
+    def refine_chunk(self, size: int, chunk_size: int) -> list[list[int]]:
+        step = size // chunk_size
+        result = [[i * chunk_size, (i + 1) * chunk_size - 1] for i in range(step)]
+        if size % chunk_size != 0 or step == 0:
+            result.append([step * chunk_size, size - 1])
+        return result
 
-    def do_download(self, url: str, scope: tuple[int, int]) -> None:
+    def do_download(self, url: str, scope: list[int]) -> None:
         headers = {**self.headers, "Range": f"bytes={scope[0]}-{scope[1]}"}
         try:
             resp = requests.get(url, headers=headers, stream=True)
             resp.raise_for_status()
             with open(self.save_path, "rb+") as f:
                 f.seek(scope[0])
-                for chunk in resp.iter_content(chunk_size=1024):
+                for chunk in resp.iter_content(chunk_size=1024 * 64):
                     if chunk:
                         f.write(chunk)
         except Exception as e:
@@ -152,7 +149,7 @@ class StreamDownloadAction(DownloadAction):
             if os.path.exists(self.save_path):
                 downloaded_size: int = os.path.getsize(self.save_path)
                 scopes = [
-                    (start, end) for start, end in scopes if start >= downloaded_size
+                    [start, end] for start, end in scopes if start >= downloaded_size
                 ]
             else:
                 with open(self.save_path, "wb") as f:

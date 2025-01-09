@@ -76,7 +76,7 @@ def is_branded(path: str):
 
 
 @main.command()
-@click.option("--output", "-o", required=True, type=click.Path())
+@click.option("--output", "-o", type=click.Path())
 @click.option("--override", "-w", is_flag=False)
 @click.option("--ergodic", "-e", is_flag=False)
 def crawl(output: str, override: bool, ergodic: bool) -> None:
