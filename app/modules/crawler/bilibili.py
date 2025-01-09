@@ -75,7 +75,8 @@ class BilibiliCrawlerManager:
         )
 
         if not options.override and os.path.exists(top.video_path):
-            logger.info(f"Skipping video {vid} as it has been downloaded before")
+            logger.info(f"Skipping video {vid}{title} as it has been downloaded before")
+            history.store([vid, title])
             return False
 
         ctx: ActionContext = ActionContext(options=top, data={"info_url": url})
