@@ -116,15 +116,19 @@ class StreamDownloadAction(DownloadAction):
         if not os.path.exists(folder := os.path.dirname(self.save_path)):
             os.makedirs(folder)
 
-        resp: Response = requests.get(url, headers=self.headers, stream=True)
-        total_size: int = int(resp.headers.get("content-length", 0))
-        block_size: int = 1024
-        counter: int = 0
-        with open(self.save_path, "wb") as f:
-            for d in resp.iter_content(block_size):
-                f.write(d)
-                self.on_progress(d, block_size, total_size, counter)
-                counter += len(d)
+        try:
+            resp: Response = requests.get(url, headers=self.headers, stream=True)
+            total_size: int = int(resp.headers.get("content-length", 0))
+            block_size: int = 1024
+            counter: int = 0
+            with open(self.save_path, "wb") as f:
+                for d in resp.iter_content(block_size):
+                    f.write(d)
+                    self.on_progress(d, block_size, total_size, counter)
+                    counter += len(d)
+        except Exception:
+            return False
+
         if total_size != 0 and counter != total_size:
             return False
         return True
