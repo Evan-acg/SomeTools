@@ -23,7 +23,7 @@ class TaskQO:
         layers: tuple[str, ...] = (
             self.root_options.to,
             self.user_name,
-            f"{self.title}.mp4",
+            f"#_V_{self.title}.mp4",
         )
         return os.path.join(*layers)
 
@@ -32,7 +32,7 @@ class TaskQO:
         layers: tuple[str, ...] = (
             self.root_options.to,
             self.user_name,
-            f"{self.title}.mp3",
+            f"#_A_{self.title}.mp3",
         )
         return os.path.join(*layers)
 
@@ -41,7 +41,16 @@ class TaskQO:
         layers: tuple[str, ...] = (
             self.root_options.to,
             self.user_name,
-            f"#_{self.title}.mp4",
+            f"#_M_{self.title}.mp4",
+        )
+        return os.path.join(*layers)
+
+    @property
+    def output_path(self) -> str:
+        layers: tuple[str, ...] = (
+            self.root_options.to,
+            self.user_name,
+            f"{self.title}.mp4",
         )
         return os.path.join(*layers)
 

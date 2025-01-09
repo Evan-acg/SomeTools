@@ -222,7 +222,7 @@ class MergeMediaAction(Action):
     def invoke(self) -> bool:
         video_path: str = self.payload.options.video_path
         audio_path: str = self.payload.options.audio_path
-        merged_path: str = self.payload.options.merged_path
+        merged_path: str = self.payload.options.output_path
 
         if not os.path.exists(video_path) or not os.path.exists(audio_path):
             return False
@@ -241,12 +241,12 @@ class CleanAction(Action):
     def invoke(self) -> bool:
         video_path: str = self.payload.options.video_path
         audio_path: str = self.payload.options.audio_path
-        merged_path: str = self.payload.options.merged_path
+        # merged_path: str = self.payload.options.merged_path
         try:
             send2trash.send2trash(video_path)
             send2trash.send2trash(audio_path)
-            if os.path.exists(merged_path):
-                os.rename(merged_path, video_path)
+            # if os.path.exists(merged_path):
+            #     os.rename(merged_path, video_path)
             return True
         except Exception:
             return False
