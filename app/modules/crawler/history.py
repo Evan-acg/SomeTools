@@ -1,6 +1,7 @@
 import os
 import threading
 import typing as t
+from multiprocessing import Lock
 
 
 # Todo: 以绝对路径path为key形成单例类
@@ -17,6 +18,7 @@ class History:
         return cls._instance[path]
 
     def __init__(self, path: str, sep: str = ";") -> None:
+        self.file_lock = Lock()
         self.path: str = path
         self.sep: str = sep
         self.raw_data: str = ""
@@ -55,7 +57,8 @@ class History:
 
         self.data.append(data)
 
-        with open(self.path, "a", encoding="utf-8") as f:
-            f.write(data + "\n")
+        with self.file_lock:
+            with open(self.path, "a", encoding="utf-8") as f:
+                f.write(data + "\n")
 
         return self
