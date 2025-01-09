@@ -75,7 +75,7 @@ class BilibiliCrawlerManager:
             title=title, bid=vid, user_name=uname, root_options=options
         )
 
-        if not options.override and os.path.exists(top.video_path):
+        if not options.override and os.path.exists(top.output_path):
             if vid not in history:
                 history.store([vid, title])
             return False

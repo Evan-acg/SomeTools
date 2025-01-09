@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 import re
 import typing as t
@@ -12,6 +13,8 @@ from tqdm import tqdm
 
 from app.core.ffmpeg import FFMpeg
 from app.modules.crawler.entity import ActionContext
+
+logger = logging.getLogger(__name__)
 
 
 class IAction(t.Protocol):
@@ -124,8 +127,8 @@ class StreamDownloadAction(DownloadAction):
                 for chunk in resp.iter_content(chunk_size=1024):
                     if chunk:
                         f.write(chunk)
-        except Exception:
-            pass
+        except Exception as e:
+            logger.error(e)
 
     @t.override
     def met(self) -> bool:
@@ -176,7 +179,7 @@ class AudioDownloadAction(StreamDownloadAction):
         return self.payload.data.get("audio_url")
 
 
-class VideoDownloadAction(AudioDownloadAction):
+class VideoDownloadAction(StreamDownloadAction):
 
     @property
     def save_path(self) -> str:
