@@ -6,3 +6,4 @@ XPATH: str = (
 )
 TOTAL_PAGE_XPATH: str = "//span[contains(@class, 'total')]"
 VIDEO_URL: str = "https://www.bilibili.com/video/{}/"
+INFO_PATTERN: str = r"<script>window.__playinfo__=(.*?)</script>"

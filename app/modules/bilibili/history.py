@@ -1,46 +1,42 @@
 import os
 import threading
 import typing as t
-from multiprocessing import Lock
 
 
-# Todo: 以绝对路径path为key形成单例类
 class History:
-    _instance: dict[str, t.Any] = {}
+    _instance: dict[str, "History"] = {}
     lock: threading.Lock = threading.Lock()
 
-    def __new__(cls, path: str, sep: str = ";") -> t.Self:
+    def __new__(cls, path: str, sep: str = ";") -> "History":
         with cls.lock:
             path = os.path.abspath(path)
             if path not in cls._instance:
-                instance: t.Any = super().__new__(cls)
+                instance: History = super().__new__(cls)
                 cls._instance[path] = instance
-        return cls._instance[path]
+            return cls._instance[path]
 
     def __init__(self, path: str, sep: str = ";") -> None:
-        self.file_lock = Lock()
+        self.file_lock: threading.Lock = threading.Lock()
         self.path: str = path
         self.sep: str = sep
         self.raw_data: str = ""
         self.data: list[str] = []
-        self.cache: dict[str, bool] = {}
+        self.cache: dict[t.Hashable, bool] = {}
 
-    def __contains__(self, item: str) -> bool:
-        if item in self.cache:
-            return self.cache[item]
-        flag = any(item in d for d in self.data)
-        self.cache[item] = flag
+    def __contains__(self, key: t.Hashable) -> bool:
+        if key in self.cache:
+            return self.cache[key]
+        flag = any(str(key) in item for item in self.data)
+        self.cache[key] = flag
         return flag
 
-    def load(self, path: str | None = None) -> t.Self:
-        path = path or self.path
-
-        if not os.path.exists(path):
+    def load(self) -> t.Self:
+        if not os.path.exists(self.path):
             self.data = []
             self.raw_data = ""
             return self
 
-        with open(path, "r", encoding="utf-8") as f:
+        with open(self.path, "r", encoding="utf-8") as f:
             self.raw_data = f.read()
             f.seek(0)
             self.data = list(set(f.readlines()))
@@ -49,6 +45,7 @@ class History:
 
     def store(self, data: str | list[str]) -> t.Self:
         folder: str = os.path.dirname(self.path)
+
         if not os.path.exists(folder):
             os.makedirs(folder)
 
@@ -56,6 +53,7 @@ class History:
             data = self.sep.join(data)
 
         self.data.append(data)
+        self.cache[data] = True
 
         with self.file_lock:
             with open(self.path, "a", encoding="utf-8") as f:

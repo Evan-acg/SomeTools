@@ -1,4 +1,4 @@
-from app.modules.crawler.action import (
+from app.modules.bilibili.action import (
     AudioDownloadAction,
     InfoDownloadAction,
     RefineInfoAction,
